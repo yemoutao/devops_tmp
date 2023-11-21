@@ -1,0 +1,55 @@
+apiVersion: alibabacloud.com/v1
+kind: AlbConfig
+metadata:
+  name: cn-albconfig
+spec:
+  config:
+    name: cn-albconfig      # ALB实例ID。
+    forceOverride: false
+    accessLogConfig:
+      logProject: "alb-ingress-k8s-log"
+      logStore: "alb_ingress"
+
+
+
+#-------------------------------------------------------------------------------
+
+
+
+apiVersion: networking.k8s.io/v1
+kind: IngressClass
+metadata:
+  name: cn-albconfig
+spec:
+  controller: ingress.k8s.alibabacloud/alb
+  parameters:
+    apiGroup: alibabacloud.com
+    kind: AlbConfig
+    name: cn-albconfig
+
+
+
+
+------------------------------------------------
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: u-ai-ingress
+  namespace: u-ai
+spec:
+  ingressClassName: cn-albconfig
+  rules:
+    - host: "apis.updf.cn"
+      http:
+        paths:
+          - backend:
+             service:
+              name: u-ai-server
+              port:
+                number: 8895
+            path: /v1/ai/
+            pathType: ImplementationSpecific
+  tls:
+  - hosts:
+    - apis.updf.cn

@@ -1,0 +1,90 @@
+apiVersion: alibabacloud.com/v1
+kind: AlbConfig
+metadata:
+  name: updf-albconfig
+spec:
+  config:
+    id: alb-b28vyp2vh8sahy8a8k        # ALB实例ID。
+    forceOverride: false
+    accessLogConfig:
+      logProject: "alb-ingress-k8s-log"
+      logStore: "alb_ingress"
+
+
+
+#-------------------------------------------------------------------------------
+
+
+
+apiVersion: networking.k8s.io/v1
+kind: IngressClass
+metadata:
+  name: updf-ingressclass
+spec:
+  controller: ingress.k8s.alibabacloud/alb
+  parameters:
+    apiGroup: alibabacloud.com
+    kind: AlbConfig
+    name: updf-albconfig
+
+
+
+#------------------------------------------------------------------------------
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: u-ai-ingress
+  namespace: u-ai
+spec:
+  ingressClassName: updf-ingressclass
+  rules:
+    - host: "apis.updf.com"
+      http:
+        paths:
+          - backend:
+             service:
+              name: u-ai-server
+              port:
+                number: 8895
+            path: /v1/ai/
+            pathType: ImplementationSpecific
+  tls:
+  - hosts:
+    - apis.updf.com
+##------------------------------------------------------------------------------
+
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: u-ai-ingress
+  namespace: u-ai
+spec:
+  ingressClassName: updf-ingressclass
+  rules:
+    - host: "apis.updf.com"
+      http:
+        paths:
+          - backend:
+             service:
+              name: u-ai-qdrant
+              port:
+                number: 6334
+            path: /qdrant
+            pathType: Exact
+
+
+
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: secret-tls
+type: kubernetes.io/tls
+data:
+  # the data is abbreviated in this example
+  tls.crt: |
+    dXBkZi5jb21fY2hhaW4uY3J0 # Base64编码后的albtop-cert.pem。
+  tls.key: |
+    dXBkZi5jb20ua2V5 # Base64编码后的albtop-key.pem。

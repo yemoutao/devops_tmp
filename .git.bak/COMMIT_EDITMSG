@@ -1,0 +1,14 @@
+
+# Please enter the commit message for your changes. Lines starting
+# with '#' will be ignored, and an empty message aborts the commit.
+#
+# On branch master
+# Your branch is up to date with 'origin/master'.
+#
+# Changes to be committed:
+#	new file:   Jenkinsfile_test
+#	new file:   "UAT\347\216\257\345\242\203\347\233\270\345\205\263\344\277\241\346\201\257.txt"
+#	new file:   createuser.sh
+#	new file:   status_test_qdrant.yaml
+#
+20230821

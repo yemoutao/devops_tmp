@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+  name: pgvector
+  namespace: u-ai
+  labels:
+    app: pgvector
+
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: pgvector
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      annotations:
+      labels:
+        name: pgvector
+    spec:
+      containers:
+        - env:
+            - name: aliyun_logs_uat-pgvector-chat
+              value: /superace-updf/updf.com/*.log
+            - name: aliyun_logs_uat-pgvector
+              value: stdout
+            - name: aliyun_logs_logtag_tags
+              value: uat=v1.0
+            - name: POSTGRES_USER
+              value: root
+            - name: POSTGRES_PASSWORD
+              value: updf0901
+          image: 'ankane/pgvector:latest'
+          imagePullPolicy: Always
+          name: pgvector
+          ports:
+            - containerPort: 5432
+              name: pgvector-port
+              protocol: TCP
+          resources:
+            limits:
+              cpu: '2'
+              ephemeral-storage: 30Gi
+              memory: 2Gi
+            requests:
+              cpu: '2'
+              ephemeral-storage: 30Gi
+              memory: 2G

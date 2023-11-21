@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+  name: ${project_name}
+  namespace: uat
+  labels:
+    app: ${project_name}
+
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: ${project_name}
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      annotations:
+      labels:
+        name: ${project_name}
+    spec:
+      containers:
+        - env:
+            - name: aliyun_logs_uat-${project_name}-chat
+              value: /superace-updf/updf.com/*.log
+            - name: aliyun_logs_uat-${project_name}
+              value: stdout
+            - name: aliyun_logs_logtag_tags
+              value: uat=v1.0
+          image: 'registry.us-east-1.aliyuncs.com/updf/uat-${project_name}:${tag_num}'
+          imagePullPolicy: Always
+          name: ${project_name}
+          ports:
+            - containerPort: 8895
+              name: server-port
+              protocol: TCP
+          resources:
+            limits:
+              cpu: '2'
+              ephemeral-storage: 30Gi
+              memory: 2Gi
+            requests:
+              cpu: '2'
+              ephemeral-storage: 30Gi
+              memory: 2G
+
+

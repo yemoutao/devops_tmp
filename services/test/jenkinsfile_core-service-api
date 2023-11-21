@@ -1,0 +1,159 @@
+   pipeline {
+    
+    agent any
+    
+    parameters {
+        choice ( name: 'project', choices: ['core-service'], description: '选择项目别名' )
+        string ( name: 'BRANCH', defaultValue: 'local', description: '输入需要更新的Git分支' )
+        choice ( name: 'REGION', choices: ['cn-east','us-east'], description: '选择部署环境' )
+    }
+    
+    environment {
+        email_addr="tom@updf.cn"
+        harbor="registry.cn-hangzhou.aliyuncs.com"
+        GIT_URL="git@gitee.com:superace-updf/updf.com.git"
+        cn_host="10.10.10.200" 
+        us_host="10.10.10.204"
+        project_env="local"
+    }
+
+    stages {
+        stage('清除空间') {
+            steps {
+                // Clean before build
+                cleanWs()
+            }
+        }
+        stage('拉取代码') {
+            steps {
+                script {
+                    println "----------------------------------------分支为：${BRANCH}-----------------------------------------"
+                        try {                        
+
+                            
+                            checkout(
+                                
+                                [$class: 'GitSCM', doGenerateSubmoduleConfigurations: false, submoduleCfg: [], extensions: [[$class: 'CloneOption', depth: 1, noTags: false, reference: '', shallow: true]],
+                                branches: [[name: "$BRANCH"]],userRemoteConfigs: [[url: "${env.GIT_URL}", credentialsId: "20230717"]]]
+                            
+                            )
+                        }catch(exc) {   
+                            env.REASON = "拉取代码出错"
+                            throw(exc)
+                            }
+                    // 定义全局变量
+                    env.COMMIT_ID   = sh(script: 'git log --pretty=format:%h',  returnStdout: true).trim() // 提交ID
+                    env.COMMIT_USER = sh(script: 'git log --pretty=format:%an', returnStdout: true).trim() // 提交者
+                    env.COMMIT_TIME = sh(script: 'git log --pretty=format:%ai', returnStdout: true).trim() // 提交时间
+                    env.COMMIT_INFO = sh(script: 'git log --pretty=format:%s',  returnStdout: true).trim() // 提交信息
+                    
+                    println "------------------------------------------提交ID为： ${COMMIT_ID}--------------------------------------------------- "
+                    println "------------------------------------------提交者为： ${env.COMMIT_USER} ---------------------------------------------"
+                    println "------------------------------------------提交时间为： ${env.COMMIT_TIME}-------------------------------------------- "
+                    println "------------------------------------------提交信息为： ${env.COMMIT_INFO} --------------------------------------------"
+                }
+            }
+        }
+        stage('Build Go') {
+            steps{
+                script{
+                    println "---------------------------------------------当前工作空间为：${WORKSPACE}----------------------------------------------"                   
+                    sh ''' 
+                        cd ${WORKSPACE}/core_service/ && mkdir build 
+                        source /etc/profile >/dev/null 2>&1
+                        GOPROXY=https://goproxy.cn;GOPRIVATE=gitee.com/superace-updf
+                        go build -o build/${project}  
+                        mv config/ build/
+                        chmod +x build/${project}
+                    '''
+               
+                }
+            }
+        }
+        stage('Build Image') {
+            steps{
+                script{
+
+                        sh '''
+                        docker build --build-arg UPDF_ENV=${project_env} --build-arg REGION_ARG=${REGION} ${WORKSPACE}/core_service/ -t $harbor/updf/${project_env}-$project:${COMMIT_ID}
+                        docker push $harbor/updf/${project_env}-$project:${COMMIT_ID}
+                        '''
+   
+                  } 
+                println "----------------------------------------上传镜像为：$harbor/updf/${project_env}-$project:${COMMIT_ID}-----------------------------------------"  
+            }
+        }
+        stage('DEL ASK') {
+          steps{    
+            script{
+
+                if( "$REGION" == 'cn-east' ){
+                    sh '''
+                    ssh root@$cn_host "sudo echo "Tag=${COMMIT_ID}" > /opt/project/${project}/.env && sudo docker-compose -f /opt/project/${project}/docker-compose.yaml up -d"
+                    '''
+                }else{
+                    sh '''
+                    ssh root@$us_host "sudo echo "Tag=${COMMIT_ID}" > /opt/project/${project}/.env && sudo docker-compose -f /opt/project/${project}/docker-compose.yaml up -d"
+                    '''
+                }
+                
+            }
+          }
+        }       
+
+    }
+    post {
+        success {
+            feiShuTalk (
+                robot: "feishu-failse",
+                type: "INTERACTIVE",
+                title: "📢 Jenkins 构建通知",
+                text: [
+                    "📋 **任务名称**：[${JOB_NAME}](${JOB_URL})",
+                    "🔢 **任务编号**：[${BUILD_DISPLAY_NAME}](${BUILD_URL})",
+                    "🌟 **构建状态**: <font color='green'>成功</font>",
+                    "🕐 **构建用时**: ${currentBuild.duration} ms",
+                    "👤 **Project Nmae**: ${project}",
+                    "<at id=all></at>"
+                ],
+                buttons: [
+                    [
+                        title: "更改记录",
+                        url: "${BUILD_URL}changes"
+                    ],
+                    [
+                        title: "控制台",
+                        type: "danger",
+                        url: "${BUILD_URL}console"
+                    ]
+                ]
+            )
+        }
+        failure {
+            feiShuTalk (
+                robot: "feishu-failse",
+                type: "INTERACTIVE",
+                title: "📢 Jenkins 构建通知",
+                text: [
+                    "📋 **任务名称**：[${JOB_NAME}](${JOB_URL})",
+                    "🔢 **任务编号**：[${BUILD_DISPLAY_NAME}](${BUILD_URL})",
+                    "🌟 **构建状态**: <font color='red'>失败</font>",
+                    "🕐 **构建用时**: ${currentBuild.duration} ms",
+                    "👤 **Project Nmae**: ${project}",
+                    "<at id=all></at>"
+                ],
+                buttons: [
+                   [
+                      title: "更改记录",
+                      url: "${BUILD_URL}changes"
+                   ],
+                   [
+                      title: "控制台",
+                      type: "danger",
+                      url: "${BUILD_URL}console"
+                   ]
+                ]
+              )
+        }
+    }
+ }

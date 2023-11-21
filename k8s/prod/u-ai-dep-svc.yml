@@ -1,0 +1,89 @@
+apiVersion: apps/v1 
+kind: Deployment
+metadata:
+  name: u-ai-server
+  labels:
+    app: u-ai-server
+  namespace: u-ai
+spec:
+  replicas: 1
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      name: u-ai-server
+  template: 
+    metadata: 
+      labels: 
+        name: u-ai-server
+    spec:
+      containers: 
+        - name: u-ai-server
+          image: registry.cn-hangzhou.aliyuncs.com/updf/cn-u-ai-server:v0.0.1
+          imagePullPolicy: Always
+          ports: 
+            - name: server-port
+              containerPort: 8895
+
+apiVersion: v1
+kind: Service
+metadata: 
+  name: u-ai-server
+  namespace: u-ai
+spec:
+  type: ClusterIP
+  ports:
+  - name: u-ai-server-port
+    port: 8895
+    targetPort: 8895
+    protocol: TCP
+  selector: 
+    name: u-ai-server
+
+
+
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: u-ai-server
+  namespace: u-ai
+  annotations:
+    alb.ingress.kubernetes.io/rewrite-target: /v1/ai/*
+  name: rewrite-ingress
+spec:
+  ingressClassName: alb
+  rules:
+  - host: apis.updf.cn
+    http:
+      paths:
+      - path: /v1test/ai/(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: u-ai-server
+            port:
+              number: 8895
+
+
+
+
+
+apiVersion: v1
+kind: Service
+metadata:
+name: web1-updf
+labels:
+  name: web1-updf
+spec:
+type: LoadBalancer
+ports:
+- port: 6900
+  targetPort: 6900
+  protocol: TCP
+  nodePort: 32145
+selector:
+  app: web
+status:
+loadBalancer:
+  ingress:
+  - ip: 192.168.174.127

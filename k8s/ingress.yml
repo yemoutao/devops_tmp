@@ -1,0 +1,51 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  generation: 1
+  labels:
+    ingress-controller: alb
+  managedFields:
+    - apiVersion: networking.k8s.io/v1
+      fieldsType: FieldsV1
+      fieldsV1:
+        'f:metadata':
+          'f:labels':
+            .: {}
+            'f:ingress-controller': {}
+        'f:spec':
+          'f:ingressClassName': {}
+          'f:rules': {}
+          'f:tls': {}
+      manager: ACK-Console Apache-HttpClient
+      operation: Update
+    - apiVersion: networking.k8s.io/v1
+      fieldsType: FieldsV1
+      fieldsV1:
+        'f:status':
+          'f:loadBalancer':
+            'f:ingress': {}
+      manager: cloud-controller-manager
+      operation: Update
+      subresource: status
+  name: ${ns_name}-${service_name}
+  namespace: ${ns_name}
+spec:
+  ingressClassName: updf-ingressclass
+  rules:
+    - host: ${url_name}
+      http:
+        paths:
+          - backend:
+              service:
+                name: ${svc_name}
+                port:
+                  number: ${port_num}
+            path: /*
+            pathType: ImplementationSpecific
+  tls:
+    - hosts:
+        - ${url_name}
+status:
+  loadBalancer:
+    ingress:
+      - hostname: alb-b28vyp2vh8sahy8a8k.us-east-1.alb.aliyuncs.com

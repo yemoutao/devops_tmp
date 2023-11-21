@@ -1,0 +1,48 @@
+
+
+
+UAT环境部署：
+
+
+
+core-service是所有服务的依赖服务  
+
+pay_api是api的依赖服务
+
+
+config配置修改：
+
+rpc-address: tcp@127.0.0.1:6900 为访问core-service服务    tcp@core-service:6900
+
+
+task_service: oss redis 
+
+
+admin: 需要更改mysql地址   mysql:归为同一个库    redis也需要做更改    
+
+admin  需要新建数据库：updf_admin
+
+
+
+mysql ： updfroot  ihzYh524JvZ67s
+
+addr： pc-0xi60719p94ux678m.mysql.polardb.rds.aliyuncs.com
+
+
+
+pay-api :  8891
+
+accounts-api:  8888
+
+api : 8889
+
+drive: 8892
+
+monitor_service:  定时任务不需暴露端口  //不需要部署
+
+online_api: 8890
+
+task_service: 8889
+
+
+.well-known/apple-developer-merchantid-domain-association
