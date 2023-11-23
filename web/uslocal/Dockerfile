@@ -15,4 +15,3 @@ ADD uslocal-admin.updf.cn.tar.gz /data/www/vhosts/uslocal-admin.updf.cn/
 
 RUN chown -R nginx.nginx /data/www/vhosts/
 
-##tmp
