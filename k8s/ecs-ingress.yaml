@@ -2,8 +2,9 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: prod-drive
+  namespace: u-ai
   annotations:
-    alb.ingress.kubernetes.io/actions.forward: |
+    alb.ingress.kubernetes.io/actions.prod-drive: |
        [{
            "type": "ForwardGroup",
            "ForwardConfig": {
@@ -28,7 +29,7 @@ spec:
         pathType: Prefix
         backend:
           service:
-            name: forward   #虚假标记，和annotations的一致
+            name: prod-drive   #虚假标记，和annotations的一致
             port:
               name: use-annotation   #固定写法， 会去找注释中存在的服务，不会在集群中找查找service
   tls:
