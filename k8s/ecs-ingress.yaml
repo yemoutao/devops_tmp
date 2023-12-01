@@ -1,0 +1,36 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: prod-drive
+  annotations:
+    alb.ingress.kubernetes.io/actions.forward: |
+       [{
+           "type": "ForwardGroup",
+           "ForwardConfig": {
+             "ServerGroups" : [{
+               "ServiceName": "prod-drive",
+               "Weight": 30,
+               "ServicePort": 8892
+             },
+             {
+               "ServerGroupID": "sgp-5okq62615qs5w6m4gh",
+               "Weight": 30
+             }]
+           }
+       }]
+spec:
+  ingressClassName: alb
+  rules:
+   - host: apis.updf.cn
+     http:
+      paths:
+      - path: /v1/drive/*
+        pathType: Prefix
+        backend:
+          service:
+            name: forward   #虚假标记，和annotations的一致
+            port:
+              name: use-annotation   #固定写法， 会去找注释中存在的服务，不会在集群中找查找service
+  tls:
+    - hosts:
+        - apis.updf.cn
