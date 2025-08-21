@@ -1,0 +1,85 @@
+## Yaml 书写标准规范：
+始终对字符串值使用引号：使用 | quote 过滤器或直接加引号
+
+不要对布尔值和数字使用引号：确保它们被正确解析为相应类型
+
+处理可能为空的值：使用 default 函数提供默认值
+
+使用 toJson 处理复杂对象：将对象转换为 JSON 字符串并引用
+
+测试模板渲染：使用 helm template 命令测试模板渲染结果
+
+
+nindent 8 表示该变量如果有换行缩进为8
+例如： labels:
+        {{- include "melynk-job.selectorLabels" . | nindent 8 }}
+使用 quote 函数确保值被正确引用 比如key或者有特殊符号的字符串处理
+```
+env:
+  - name: DATABASE_URL
+    value: {{ .Values.database.url | quote }}
+  - name: API_KEY
+    value: {{ .Values.api.key | quote }}
+```
+使用单引号
+```
+message: {{ .Values.message | squote }}
+# 渲染结果: message: 'Hello World'
+```
+# 在 tpl 函数中使用引号
+```
+data:
+  config.yaml: |
+    {{ tpl (.Files.Get "files/config.yaml") . | indent 4 }}
+```
+
+Deployment 模板：
+```
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-web
+  labels:
+    app: {{ .Release.Name | quote }}
+    version: {{ .Values.image.tag | quote }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Release.Name | quote }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name | quote }}
+    spec:
+      containers:
+      - name: web
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        ports:
+        - containerPort: {{ .Values.containerPort }}
+        env:
+        - name: ENVIRONMENT
+          value: {{ .Values.environment | quote }}
+        - name: CONFIG_JSON
+          value: {{ .Values.config | toJson | quote }}
+```
+ConfigMap 模板：
+```
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-config
+data:
+  application.properties: |
+    server.port={{ .Values.port | quote }}
+    database.url={{ .Values.database.url | quote }}
+    database.username={{ .Values.database.username | quote }}
+    database.password={{ .Values.database.password | quote }}
+    
+  nginx.conf: |
+    server {
+      listen 80;
+      server_name {{ .Values.hostname | quote }};
+      root /var/www/html;
+    }
+```
